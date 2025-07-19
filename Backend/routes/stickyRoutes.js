@@ -8,7 +8,7 @@ import {
 
 const router = express.Router();
 
-router.post("/", createNote);
+router.post("/create", createNote);
 router.get("/", getMyNotes);
 router.put("/:id", updateNote);
 router.delete("/:id", deleteNote);
