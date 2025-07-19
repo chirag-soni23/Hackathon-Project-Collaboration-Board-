@@ -1,6 +1,7 @@
+// All the imports remain same
 import { useRef, useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Text, Group } from "react-konva";
-import { Pencil, StickyNote, Eraser, MousePointer2 } from "lucide-react";
+import { Pencil, StickyNote, Eraser, MousePointer2, Trash } from "lucide-react";
 import { useStickyNotes } from "../context/StickyNoteContext";
 
 const Whiteboard = () => {
@@ -16,29 +17,14 @@ const Whiteboard = () => {
   const [editingNote, setEditingNote] = useState(null);
   const [textAreaValue, setTextAreaValue] = useState("");
   const [textAreaStyle, setTextAreaStyle] = useState({});
+  const [selectedNoteId, setSelectedNoteId] = useState(null);
 
-  const { notes, createNote, updateNote, fetchNotes } = useStickyNotes();
+  const { notes, createNote, updateNote, deleteNote, fetchNotes } =
+    useStickyNotes();
 
   useEffect(() => {
     fetchNotes();
   }, []);
-
-  const colorOptions = [
-    "#000000",
-    "#EF4444",
-    "#F59E0B",
-    "#10B981",
-    "#3B82F6",
-    "#8B5CF6",
-  ];
-  const noteColors = [
-    "#FEF9C3",
-    "#FCD34D",
-    "#FDBA74",
-    "#A7F3D0",
-    "#BFDBFE",
-    "#DDD6FE",
-  ];
 
   const addStickyNote = async (color) => {
     const newNote = {
@@ -62,11 +48,7 @@ const Whiteboard = () => {
     if (tool === "marker" || tool === "eraser") {
       setIsDrawing(true);
       const pos = e.target.getStage().getPointerPosition();
-      const newLine = {
-        tool,
-        color: drawColor,
-        points: [pos.x, pos.y],
-      };
+      const newLine = { tool, color: drawColor, points: [pos.x, pos.y] };
       setLines([...lines, newLine]);
     }
   };
@@ -101,15 +83,15 @@ const Whiteboard = () => {
   };
 
   const handleTextAreaBlur = () => {
-    if (!editingNote) return;
-    updateNote(editingNote._id, { text: textAreaValue });
-    setEditingNote(null);
+    if (editingNote) {
+      updateNote(editingNote._id, { text: textAreaValue });
+      setEditingNote(null);
+    }
   };
 
   return (
     <div
-      className={`w-screen h-screen bg-[radial-gradient(circle,_black_1px,_transparent_1px)]
-      [background-size:20px_20px] relative overflow-hidden ${
+      className={`w-screen h-screen bg-[radial-gradient(circle,_black_1px,_transparent_1px)] [background-size:20px_20px] relative overflow-hidden ${
         tool === "eraser"
           ? "cursor-eraser"
           : tool === "marker"
@@ -137,12 +119,35 @@ const Whiteboard = () => {
             {t.icon}
           </button>
         ))}
+        <button
+          disabled={!selectedNoteId}
+          onClick={() => {
+            if (selectedNoteId) {
+              deleteNote(selectedNoteId);
+              setSelectedNoteId(null);
+            }
+          }}
+          className={`p-2 rounded-lg transition-colors duration-200 ${
+            selectedNoteId
+              ? "bg-red-500 text-white hover:bg-red-600"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+          }`}
+        >
+          <Trash size={20} />
+        </button>
       </div>
 
-      {/* Color Pickers */}
+      {/* Color pickers */}
       {showColorPicker && tool === "marker" && (
         <div className="flex gap-2 p-2 bg-white shadow-lg rounded-xl fixed bottom-20 left-1/2 -translate-x-1/2 z-50">
-          {colorOptions.map((color) => (
+          {[
+            "#000000",
+            "#EF4444",
+            "#F59E0B",
+            "#10B981",
+            "#3B82F6",
+            "#8B5CF6",
+          ].map((color) => (
             <button
               key={color}
               onClick={() => setDrawColor(color)}
@@ -154,10 +159,16 @@ const Whiteboard = () => {
           ))}
         </div>
       )}
-
       {showColorPicker && tool === "sticky" && (
         <div className="flex gap-2 p-2 bg-white shadow-lg rounded-xl fixed bottom-20 left-1/2 -translate-x-1/2 z-50">
-          {noteColors.map((color) => (
+          {[
+            "#FEF9C3",
+            "#FCD34D",
+            "#FDBA74",
+            "#A7F3D0",
+            "#BFDBFE",
+            "#DDD6FE",
+          ].map((color) => (
             <button
               key={color}
               onClick={() => addStickyNote(color)}
@@ -170,7 +181,7 @@ const Whiteboard = () => {
         </div>
       )}
 
-      {/* Canvas */}
+      {/* Stage */}
       <Stage
         ref={stageRef}
         width={window.innerWidth}
@@ -185,7 +196,6 @@ const Whiteboard = () => {
         onMousemove={handleMouseMove}
         onMouseup={handleMouseUp}
       >
-        {/* Sticky Notes Layer */}
         <Layer>
           {notes.map((note) => (
             <Group
@@ -200,9 +210,44 @@ const Whiteboard = () => {
                 const { x, y } = e.target.position();
                 updateNote(note._id, { x, y });
               }}
-            >
-              <Rect width={200} height={220} fill={note.color} shadowBlur={5} />
+              onClick={() => {
+                setSelectedNoteId((prev) =>
+                  prev === note._id ? null : note._id
+                );
+              }}
+              onDblClick={() => {
+                const stage = stageRef.current;
+                const transform = stage.getAbsoluteTransform().copy().invert();
+                const pos = transform.point({ x: note.x + 10, y: note.y + 10 });
 
+                setEditingNote(note);
+                setTextAreaValue(note.text);
+                setTextAreaStyle({
+                  position: "absolute",
+                  top: pos.y,
+                  left: pos.x,
+                  width: 180,
+                  height: 160,
+                  fontSize: "16px",
+                  padding: "8px",
+                  background: note.color,
+                  color: "#111827",
+                  zIndex: 1000,
+                  borderRadius: "8px",
+                  resize: "none",
+                  overflow: "auto",
+                  lineHeight: "1.4",
+                });
+              }}
+            >
+              <Rect
+                width={200}
+                height={220}
+                fill={note.color}
+                cornerRadius={8}
+                stroke={note._id === selectedNoteId ? "blue" : ""}
+                strokeWidth={note._id === selectedNoteId ? 4 : 0}
+              />
               <Group clip={{ x: 10, y: 10, width: 180, height: 160 }}>
                 <Text
                   text={note.text}
@@ -213,39 +258,8 @@ const Whiteboard = () => {
                   fontSize={16}
                   fill="#111827"
                   wrap="word"
-                  onDblClick={() => {
-                    const stage = stageRef.current;
-                    const transform = stage
-                      .getAbsoluteTransform()
-                      .copy()
-                      .invert();
-                    const pos = transform.point({
-                      x: note.x + 10,
-                      y: note.y + 10,
-                    });
-
-                    setEditingNote(note);
-                    setTextAreaValue(note.text);
-                    setTextAreaStyle({
-                      position: "absolute",
-                      top: pos.y,
-                      left: pos.x,
-                      width: 180,
-                      height: 160,
-                      fontSize: "16px",
-                      padding: "8px",
-                      background: note.color,
-                      color: "#111827",
-                      zIndex: 1000,
-                      borderRadius: "8px",
-                      resize: "none",
-                      overflow: "auto",
-                      lineHeight: "1.4",
-                    });
-                  }}
                 />
               </Group>
-
               <Text
                 text={`~ ${note?.user?.name || "Unknown"}`}
                 x={10}
@@ -259,7 +273,7 @@ const Whiteboard = () => {
           ))}
         </Layer>
 
-        {/* Drawing Layer */}
+        {/* Drawing */}
         <Layer>
           {lines.map((line, i) => (
             <Line
@@ -277,7 +291,7 @@ const Whiteboard = () => {
         </Layer>
       </Stage>
 
-      {/* Editable Text Area */}
+      {/* Textarea for editing note */}
       {editingNote && (
         <textarea
           value={textAreaValue}
