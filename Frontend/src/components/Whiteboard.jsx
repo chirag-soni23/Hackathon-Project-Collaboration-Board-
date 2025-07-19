@@ -23,8 +23,22 @@ const Whiteboard = () => {
     fetchNotes();
   }, []);
 
-  const colorOptions = ["#000000", "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6"];
-  const noteColors = ["#FEF9C3", "#FCD34D", "#FDBA74", "#A7F3D0", "#BFDBFE", "#DDD6FE"];
+  const colorOptions = [
+    "#000000",
+    "#EF4444",
+    "#F59E0B",
+    "#10B981",
+    "#3B82F6",
+    "#8B5CF6",
+  ];
+  const noteColors = [
+    "#FEF9C3",
+    "#FCD34D",
+    "#FDBA74",
+    "#A7F3D0",
+    "#BFDBFE",
+    "#DDD6FE",
+  ];
 
   const addStickyNote = async (color) => {
     const newNote = {
@@ -115,7 +129,9 @@ const Whiteboard = () => {
             key={t.name}
             onClick={() => handleToolClick(t)}
             className={`p-2 rounded-lg transition-colors duration-200 ${
-              tool === t.name ? "bg-purple-500 text-white" : "bg-white text-gray-700 hover:bg-gray-100"
+              tool === t.name
+                ? "bg-purple-500 text-white"
+                : "bg-white text-gray-700 hover:bg-gray-100"
             }`}
           >
             {t.icon}
@@ -176,7 +192,10 @@ const Whiteboard = () => {
               key={note._id}
               x={note.x}
               y={note.y}
-              draggable={tool === "select" && !(editingNote && editingNote._id === note._id)}
+              draggable={
+                tool === "select" &&
+                !(editingNote && editingNote._id === note._id)
+              }
               onDragEnd={(e) => {
                 const { x, y } = e.target.position();
                 updateNote(note._id, { x, y });
@@ -196,8 +215,14 @@ const Whiteboard = () => {
                   wrap="word"
                   onDblClick={() => {
                     const stage = stageRef.current;
-                    const transform = stage.getAbsoluteTransform().copy().invert();
-                    const pos = transform.point({ x: note.x + 10, y: note.y + 10 });
+                    const transform = stage
+                      .getAbsoluteTransform()
+                      .copy()
+                      .invert();
+                    const pos = transform.point({
+                      x: note.x + 10,
+                      y: note.y + 10,
+                    });
 
                     setEditingNote(note);
                     setTextAreaValue(note.text);
