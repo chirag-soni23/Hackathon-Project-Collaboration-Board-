@@ -1,6 +1,8 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Text, Group } from "react-konva";
 import { Pencil, StickyNote, Eraser, MousePointer2 } from "lucide-react";
+import { useStickyNotes } from "../context/StickyNoteContext";
+import { UserData } from "../context/UserContext";
 
 const Whiteboard = () => {
   const stageRef = useRef();
@@ -9,13 +11,19 @@ const Whiteboard = () => {
   const [noteColor, setNoteColor] = useState("#FEF9C3");
   const [isDrawing, setIsDrawing] = useState(false);
   const [lines, setLines] = useState([]);
-  const [notes, setNotes] = useState([]);
   const [stageScale, setStageScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [textAreaValue, setTextAreaValue] = useState("");
   const [textAreaStyle, setTextAreaStyle] = useState({});
+
+  const { notes, createNote, updateNote, fetchNotes } = useStickyNotes();
+  const { user } = UserData();
+
+  useEffect(() => {
+    fetchNotes();
+  }, []);
 
   const colorOptions = [
     "#000000",
@@ -34,17 +42,14 @@ const Whiteboard = () => {
     "#DDD6FE",
   ];
 
-  const addStickyNote = () => {
+  const addStickyNote = async (color) => {
     const newNote = {
-      id: Date.now(),
+      text: "",
       x: Math.random() * (window.innerWidth - 250) + 50,
       y: Math.random() * (window.innerHeight - 200) + 50,
-      width: 200,
-      height: 220,
-      text: "",
-      color: noteColor,
+      color,
     };
-    setNotes((prev) => [...prev, newNote]);
+    await createNote(newNote);
   };
 
   const handleToolClick = (t) => {
@@ -102,26 +107,22 @@ const Whiteboard = () => {
 
   const handleTextAreaBlur = () => {
     if (!editingNote) return;
-    setNotes((prevNotes) =>
-      prevNotes.map((n) =>
-        n.id === editingNote.id ? { ...n, text: textAreaValue } : n
-      )
-    );
+    updateNote(editingNote._id, { text: textAreaValue });
     setEditingNote(null);
   };
 
   return (
     <div
       className={`w-screen h-screen bg-[radial-gradient(circle,_black_1px,_transparent_1px)]
- [background-size:20px_20px] relative overflow-hidden ${
-   tool === "eraser"
-     ? "cursor-eraser"
-     : tool === "marker"
-     ? "cursor-crosshair"
-     : "cursor-default"
- }`}
+      [background-size:20px_20px] relative overflow-hidden ${
+        tool === "eraser"
+          ? "cursor-eraser"
+          : tool === "marker"
+          ? "cursor-crosshair"
+          : "cursor-default"
+      }`}
     >
-      {/* Toolbox */}
+      {/* Toolbar */}
       <div className="flex gap-2 p-2 bg-white rounded-xl shadow-md fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
         {[
           {
@@ -152,7 +153,7 @@ const Whiteboard = () => {
         ))}
       </div>
 
-      {/* Marker Color Picker */}
+      {/* Color Picker */}
       {showColorPicker && tool === "marker" && (
         <div className="flex gap-2 p-2 bg-white shadow-lg rounded-xl fixed bottom-20 left-1/2 -translate-x-1/2 z-50">
           {colorOptions.map((color) => (
@@ -173,10 +174,7 @@ const Whiteboard = () => {
           {noteColors.map((color) => (
             <button
               key={color}
-              onClick={() => {
-                setNoteColor(color);
-                addStickyNote();
-              }}
+              onClick={() => addStickyNote(color)}
               className={`w-6 h-6 rounded-full border-2 ${
                 noteColor === color ? "border-black" : "border-transparent"
               }`}
@@ -205,32 +203,25 @@ const Whiteboard = () => {
         <Layer>
           {notes.map((note) => (
             <Group
-              key={note.id}
+              key={note._id}
               x={note.x}
               y={note.y}
               draggable={
                 tool === "select" &&
-                !(editingNote && editingNote.id === note.id)
+                !(editingNote && editingNote._id === note._id)
               }
               onDragEnd={(e) => {
                 const { x, y } = e.target.position();
-                setNotes((prev) =>
-                  prev.map((n) => (n.id === note.id ? { ...n, x, y } : n))
-                );
+                updateNote(note._id, { x, y });
               }}
             >
-              <Rect
-                width={note.width}
-                height={note.height}
-                fill={note.color}
-                shadowBlur={5}
-              />
+              <Rect width={200} height={220} fill={note.color} shadowBlur={5} />
               <Text
                 text={note.text}
                 x={10}
                 y={10}
-                width={note.width - 20}
-                height={note.height - 20}
+                width={180}
+                height={200}
                 fontSize={16}
                 fill="#111827"
                 wrap="word"
@@ -252,18 +243,25 @@ const Whiteboard = () => {
                     position: "absolute",
                     top: pos.y,
                     left: pos.x,
-                    width: note.width - 20,
-                    height: note.height - 20,
+                    width: 180,
+                    height: 200,
                     fontSize: "16px",
                     padding: "8px",
-                    border: "1px solid #ccc",
-                    borderRadius: "8px",
                     background: note.color,
                     color: "#111827",
                     zIndex: 1000,
+                    borderRadius: "8px",
                     resize: "none",
                   });
                 }}
+              />
+              <Text
+                text={`~ ${user?.name || "Unknown"}`}
+                x={10}
+                y={180}
+                width={180}
+                fontSize={12}
+                fill="#4B5563"
               />
             </Group>
           ))}
@@ -287,6 +285,7 @@ const Whiteboard = () => {
         </Layer>
       </Stage>
 
+      {/* TextArea for Editing */}
       {editingNote && (
         <textarea
           value={textAreaValue}
@@ -294,12 +293,7 @@ const Whiteboard = () => {
           onBlur={handleTextAreaBlur}
           autoFocus
           className="outline-none border-none resize-none"
-          style={{
-            ...textAreaStyle,
-            border: "none",
-            outline: "none",
-            resize: "none",
-          }}
+          style={textAreaStyle}
         />
       )}
     </div>

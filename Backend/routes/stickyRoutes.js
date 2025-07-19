@@ -1,7 +1,7 @@
 import express from "express";
 import {
   createNote,
-  getMyNotes,
+  getAllNotes,
   updateNote,
   deleteNote,
 } from "../controllers/stickyNoteController.js";
@@ -9,7 +9,7 @@ import {
 const router = express.Router();
 
 router.post("/create", createNote);
-router.get("/", getMyNotes);
+router.get("/", getAllNotes);
 router.put("/:id", updateNote);
 router.delete("/:id", deleteNote);
 
