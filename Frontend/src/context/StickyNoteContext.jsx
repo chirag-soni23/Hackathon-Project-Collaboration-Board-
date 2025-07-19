@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import socket from "../socket"; // import socket
 
 const StickyNoteContext = createContext();
 
@@ -8,12 +9,12 @@ export const StickyNoteProvider = ({ children }) => {
   const [notes, setNotes] = useState([]);
   const [noteLoading, setNoteLoading] = useState(true);
 
-  // Fetch all notes
+  // Fetch initial notes
   const fetchNotes = async () => {
     try {
       const { data } = await axios.get("/api/notes");
       setNotes(data);
-    } catch (error) {
+    } catch {
       toast.error("Failed to fetch notes");
     } finally {
       setNoteLoading(false);
@@ -22,39 +23,54 @@ export const StickyNoteProvider = ({ children }) => {
 
   useEffect(() => {
     fetchNotes();
+
+    socket.on("noteCreated", (note) => {
+      setNotes((prev) => [...prev, note]);
+    });
+
+    socket.on("noteUpdated", (updatedNote) => {
+      setNotes((prev) =>
+        prev.map((note) => (note._id === updatedNote._id ? updatedNote : note))
+      );
+    });
+
+    socket.on("noteDeleted", (id) => {
+      setNotes((prev) => prev.filter((note) => note._id !== id));
+    });
+
+    return () => {
+      socket.off("noteCreated");
+      socket.off("noteUpdated");
+      socket.off("noteDeleted");
+    };
   }, []);
 
-  // Create new note
   const createNote = async ({ text, x, y, color }) => {
     try {
-      const { data } = await axios.post("/api/notes/create", {
-        text,
-        x,
-        y,
-        color,
-      });
+      const { data } = await axios.post("/api/notes/create", { text, x, y, color });
       setNotes((prev) => [...prev, data]);
-    } catch (error) {
+      socket.emit("createNote", data);
+    } catch {
       toast.error("Failed to create note");
     }
   };
 
-  // Update note
   const updateNote = async (id, updatedData) => {
     try {
       const { data } = await axios.put(`/api/notes/${id}`, updatedData);
       setNotes((prev) => prev.map((note) => (note._id === id ? data : note)));
-    } catch (error) {
+      socket.emit("updateNote", data);
+    } catch {
       toast.error("Failed to update note");
     }
   };
 
-  // Delete note
   const deleteNote = async (id) => {
     try {
       await axios.delete(`/api/notes/${id}`);
       setNotes((prev) => prev.filter((note) => note._id !== id));
-    } catch (error) {
+      socket.emit("deleteNote", id);
+    } catch {
       toast.error("Failed to delete note");
     }
   };

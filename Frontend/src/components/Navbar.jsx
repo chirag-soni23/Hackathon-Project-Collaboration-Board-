@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { UserData } from "../context/UserContext";
+import { useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const { user, logout } = UserData();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef();
+  const navigate = useNavigate();
 
   const handleClickOutside = (e) => {
     if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -28,10 +30,16 @@ const Navbar = () => {
       </div>
 
       {open && (
-        <div className="mt-2 w-28 absolute right-0">
+        <div className="mt-2 w-36 absolute right-0 space-y-2">
+          <button
+            onClick={() => navigate("/active-users")}
+            className="block w-full text-left px-4 py-2 text-sm text-white font-bold bg-green-500 hover:bg-green-400 rounded-xl"
+          >
+            Active Users
+          </button>
           <button
             onClick={logout}
-            className="block w-full cursor-pointer text-left px-4 py-2 text-sm text-white font-bold bg-red-500 hover:bg-red-400 rounded-xl"
+            className="block w-full text-left px-4 py-2 text-sm text-white font-bold bg-red-500 hover:bg-red-400 rounded-xl"
           >
             Logout
           </button>
