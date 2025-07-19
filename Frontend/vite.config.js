@@ -8,8 +8,11 @@ export default defineConfig({
    server:{
     proxy:{
       "/api":{
-        target:"https://hackathon-project-collaboration-board.onrender.com/"
+        target:"http://localhost:5000/"
       }
     }
   },
+  build: {
+    chunkSizeWarningLimit: 2000 
+  }
 })
