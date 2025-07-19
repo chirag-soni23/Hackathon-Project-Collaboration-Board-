@@ -16,8 +16,8 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "https://hackathon-project-collaboration-boa-rho.vercel.app/", 
-    methods: ["GET", "POST","DELETE","PUT"],
+    origin: "http://localhost:5173", 
+    methods: ["GET", "POST"],
   },
 });
 
