@@ -4,17 +4,26 @@ import { StickyNote } from "../models/stickyNoteModel.js";
 export const createNote = async (req, res) => {
   try {
     const { text, x, y, color } = req.body;
-    const note = await StickyNote.create({ text, x, y, color });
-    res.status(201).json(note);
+    const note = await StickyNote.create({
+      text,
+      x,
+      y,
+      color,
+      user: req.user._id, 
+    });
+    const populatedNote = await note.populate("user", "name");
+    res.status(201).json(populatedNote);
   } catch (error) {
     res.status(500).json({ message: "Failed to create note", error });
   }
 };
 
-// Get all sticky notes
+// Get all sticky notes with user name
 export const getAllNotes = async (req, res) => {
   try {
-    const notes = await StickyNote.find().sort({ updatedAt: -1 });
+    const notes = await StickyNote.find()
+      .populate("user", "name") // 🔥 Populate user name only
+      .sort({ updatedAt: -1 });
     res.status(200).json(notes);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch notes", error });
@@ -30,7 +39,7 @@ export const updateNote = async (req, res) => {
       id,
       { text, x, y, color },
       { new: true }
-    );
+    ).populate("user", "name"); // optional populate
     res.status(200).json(updated);
   } catch (error) {
     res.status(500).json({ message: "Failed to update note", error });

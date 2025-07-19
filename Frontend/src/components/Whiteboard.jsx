@@ -1,8 +1,7 @@
-import React, { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Text, Group } from "react-konva";
 import { Pencil, StickyNote, Eraser, MousePointer2 } from "lucide-react";
 import { useStickyNotes } from "../context/StickyNoteContext";
-import { UserData } from "../context/UserContext";
 
 const Whiteboard = () => {
   const stageRef = useRef();
@@ -19,28 +18,13 @@ const Whiteboard = () => {
   const [textAreaStyle, setTextAreaStyle] = useState({});
 
   const { notes, createNote, updateNote, fetchNotes } = useStickyNotes();
-  const { user } = UserData();
 
   useEffect(() => {
     fetchNotes();
   }, []);
 
-  const colorOptions = [
-    "#000000",
-    "#EF4444",
-    "#F59E0B",
-    "#10B981",
-    "#3B82F6",
-    "#8B5CF6",
-  ];
-  const noteColors = [
-    "#FEF9C3",
-    "#FCD34D",
-    "#FDBA74",
-    "#A7F3D0",
-    "#BFDBFE",
-    "#DDD6FE",
-  ];
+  const colorOptions = ["#000000", "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6"];
+  const noteColors = ["#FEF9C3", "#FCD34D", "#FDBA74", "#A7F3D0", "#BFDBFE", "#DDD6FE"];
 
   const addStickyNote = async (color) => {
     const newNote = {
@@ -53,9 +37,8 @@ const Whiteboard = () => {
   };
 
   const handleToolClick = (t) => {
-    if (tool === t.name) {
-      setShowColorPicker(false);
-    } else {
+    if (tool === t.name) setShowColorPicker(false);
+    else {
       setTool(t.name);
       setShowColorPicker(t.name === "marker" || t.name === "sticky");
     }
@@ -85,9 +68,7 @@ const Whiteboard = () => {
     setLines(updatedLines);
   };
 
-  const handleMouseUp = () => {
-    setIsDrawing(false);
-  };
+  const handleMouseUp = () => setIsDrawing(false);
 
   const handleWheel = (e) => {
     e.evt.preventDefault();
@@ -125,35 +106,24 @@ const Whiteboard = () => {
       {/* Toolbar */}
       <div className="flex gap-2 p-2 bg-white rounded-xl shadow-md fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
         {[
-          {
-            name: "select",
-            icon: <MousePointer2 size={20} />,
-            label: "Select",
-          },
-          { name: "marker", icon: <Pencil size={20} />, label: "Marker" },
-          { name: "eraser", icon: <Eraser size={20} />, label: "Eraser" },
-          {
-            name: "sticky",
-            icon: <StickyNote size={20} />,
-            label: "Sticky Note",
-          },
+          { name: "select", icon: <MousePointer2 size={20} /> },
+          { name: "marker", icon: <Pencil size={20} /> },
+          { name: "eraser", icon: <Eraser size={20} /> },
+          { name: "sticky", icon: <StickyNote size={20} /> },
         ].map((t) => (
           <button
             key={t.name}
             onClick={() => handleToolClick(t)}
             className={`p-2 rounded-lg transition-colors duration-200 ${
-              tool === t.name
-                ? "bg-purple-500 text-white"
-                : "bg-white text-gray-700 hover:bg-gray-100"
+              tool === t.name ? "bg-purple-500 text-white" : "bg-white text-gray-700 hover:bg-gray-100"
             }`}
-            title={t.label}
           >
             {t.icon}
           </button>
         ))}
       </div>
 
-      {/* Color Picker */}
+      {/* Color Pickers */}
       {showColorPicker && tool === "marker" && (
         <div className="flex gap-2 p-2 bg-white shadow-lg rounded-xl fixed bottom-20 left-1/2 -translate-x-1/2 z-50">
           {colorOptions.map((color) => (
@@ -206,60 +176,57 @@ const Whiteboard = () => {
               key={note._id}
               x={note.x}
               y={note.y}
-              draggable={
-                tool === "select" &&
-                !(editingNote && editingNote._id === note._id)
-              }
+              draggable={tool === "select" && !(editingNote && editingNote._id === note._id)}
               onDragEnd={(e) => {
                 const { x, y } = e.target.position();
                 updateNote(note._id, { x, y });
               }}
             >
               <Rect width={200} height={220} fill={note.color} shadowBlur={5} />
-              <Text
-                text={note.text}
-                x={10}
-                y={10}
-                width={180}
-                height={200}
-                fontSize={16}
-                fill="#111827"
-                wrap="word"
-                ellipsis
-                onDblClick={() => {
-                  const stage = stageRef.current;
-                  const transform = stage
-                    .getAbsoluteTransform()
-                    .copy()
-                    .invert();
-                  const pos = transform.point({
-                    x: note.x + 10,
-                    y: note.y + 10,
-                  });
 
-                  setEditingNote(note);
-                  setTextAreaValue(note.text);
-                  setTextAreaStyle({
-                    position: "absolute",
-                    top: pos.y,
-                    left: pos.x,
-                    width: 180,
-                    height: 200,
-                    fontSize: "16px",
-                    padding: "8px",
-                    background: note.color,
-                    color: "#111827",
-                    zIndex: 1000,
-                    borderRadius: "8px",
-                    resize: "none",
-                  });
-                }}
-              />
+              <Group clip={{ x: 10, y: 10, width: 180, height: 160 }}>
+                <Text
+                  text={note.text}
+                  x={10}
+                  y={10}
+                  width={180}
+                  height={160}
+                  fontSize={16}
+                  fill="#111827"
+                  wrap="word"
+                  onDblClick={() => {
+                    const stage = stageRef.current;
+                    const transform = stage.getAbsoluteTransform().copy().invert();
+                    const pos = transform.point({ x: note.x + 10, y: note.y + 10 });
+
+                    setEditingNote(note);
+                    setTextAreaValue(note.text);
+                    setTextAreaStyle({
+                      position: "absolute",
+                      top: pos.y,
+                      left: pos.x,
+                      width: 180,
+                      height: 160,
+                      fontSize: "16px",
+                      padding: "8px",
+                      background: note.color,
+                      color: "#111827",
+                      zIndex: 1000,
+                      borderRadius: "8px",
+                      resize: "none",
+                      overflow: "auto",
+                      lineHeight: "1.4",
+                    });
+                  }}
+                />
+              </Group>
+
               <Text
-                text={`~ ${user?.name || "Unknown"}`}
+                text={`~ ${note?.user?.name || "Unknown"}`}
                 x={10}
                 y={180}
                 width={180}
+                height={30}
                 fontSize={12}
                 fill="#4B5563"
               />
@@ -285,7 +252,7 @@ const Whiteboard = () => {
         </Layer>
       </Stage>
 
-      {/* TextArea for Editing */}
+      {/* Editable Text Area */}
       {editingNote && (
         <textarea
           value={textAreaValue}

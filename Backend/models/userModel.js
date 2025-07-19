@@ -16,8 +16,14 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    notes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "StickyNote",
+      },
+    ],
   },
   { timestamps: true }
 );
 
-export const User = mongoose.model("user", userSchema);
+export const User = mongoose.model("User", userSchema);

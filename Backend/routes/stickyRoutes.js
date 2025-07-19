@@ -5,12 +5,13 @@ import {
   updateNote,
   deleteNote,
 } from "../controllers/stickyNoteController.js";
+import { isAuth } from "../middlewares/isAuth.js";
 
 const router = express.Router();
 
-router.post("/create", createNote);
-router.get("/", getAllNotes);
-router.put("/:id", updateNote);
-router.delete("/:id", deleteNote);
+router.post("/create", isAuth, createNote);
+router.get("/", isAuth, getAllNotes);
+router.put("/:id", isAuth, updateNote);
+router.delete("/:id", isAuth, deleteNote);
 
 export default router;
