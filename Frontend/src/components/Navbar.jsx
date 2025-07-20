@@ -43,6 +43,12 @@ const Navbar = () => {
           >
             Logout
           </button>
+          <a href="http://localhost:8501/" target="_blank"
+            onClick={logout}
+            className="block w-full text-left px-4 py-2 text-sm text-white font-bold bg-purple-500 hover:bg-purple-400 rounded-xl"
+          >
+            Flow Chart
+          </a>
         </div>
       )}
     </div>

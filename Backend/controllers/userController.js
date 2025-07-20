@@ -1,5 +1,6 @@
 import { User } from "../models/userModel.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken"; 
 import { TryCatch } from "../utils/TryCatch.js";
 import { generateToken } from "../utils/generateToken.js";
 
@@ -10,6 +11,7 @@ export const registerUser = TryCatch(async (req, res) => {
   if (user) {
     return res.status(400).json({ message: "Already have an account" });
   }
+
   const hashPassword = await bcrypt.hash(password, 10);
   user = await User.create({
     name,
@@ -17,26 +19,54 @@ export const registerUser = TryCatch(async (req, res) => {
     password: hashPassword,
   });
 
-  // JSON Web Token
+  // Generate token and set cookie
   generateToken(user._id, res);
-  res.status(200).json({ user, message: "User registered successfully!" });
+
+  // Also return token for Streamlit
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    expiresIn: "15d",
+  });
+
+  res.status(200).json({
+    user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    },
+    token, // ✅ send token in JSON
+    message: "User registered successfully!",
+  });
 });
 
 // Login
 export const loginUser = TryCatch(async (req, res) => {
   const { email, password } = req.body;
+
   const user = await User.findOne({ email });
   if (!user) {
     return res.status(400).json({ message: "Email or Password is incorrect" });
   }
-  const comparePassword = await bcrypt.compare(password, user.password);
-  if (!comparePassword) {
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
     return res.status(400).json({ message: "Email or Password is incorrect" });
   }
-  // JSON Web Token
+
+  // Set cookie for browser
   generateToken(user._id, res);
-  res.json({
-    user,
+
+  // Return token for Streamlit
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    expiresIn: "15d",
+  });
+
+  res.status(200).json({
+    user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    },
+    token, // ✅ send token in response
     message: "User Logged in successfully!",
   });
 });
@@ -57,6 +87,6 @@ export const userProfile = TryCatch(async (req, res) => {
 export const logout = TryCatch(async (req, res) => {
   res.cookie("token", "", { maxAge: 0 });
   res.json({
-    message: "Logged out succesfully!",
+    message: "Logged out successfully!",
   });
 });

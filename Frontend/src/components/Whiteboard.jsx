@@ -18,6 +18,7 @@ const Whiteboard = () => {
   const [textAreaValue, setTextAreaValue] = useState("");
   const [textAreaStyle, setTextAreaStyle] = useState({});
   const [selectedNoteId, setSelectedNoteId] = useState(null);
+  const [eraserSize, setEraserSize] = useState(20); // 🆕 eraser size state
 
   const { notes, createNote, updateNote, deleteNote, fetchNotes } =
     useStickyNotes();
@@ -48,7 +49,12 @@ const Whiteboard = () => {
     if (tool === "marker" || tool === "eraser") {
       setIsDrawing(true);
       const pos = e.target.getStage().getPointerPosition();
-      const newLine = { tool, color: drawColor, points: [pos.x, pos.y] };
+      const newLine = {
+        tool,
+        color: drawColor,
+        size: eraserSize, // 🆕 store eraser size
+        points: [pos.x, pos.y],
+      };
       setLines([...lines, newLine]);
     }
   };
@@ -57,7 +63,7 @@ const Whiteboard = () => {
     if (!isDrawing) return;
     const stage = e.target.getStage();
     const point = stage.getPointerPosition();
-    const updatedLines = lines.slice();
+    const updatedLines = [...lines];
     const lastLine = updatedLines[updatedLines.length - 1];
     lastLine.points = [...lastLine.points, point.x, point.y];
     updatedLines[updatedLines.length - 1] = lastLine;
@@ -137,17 +143,10 @@ const Whiteboard = () => {
         </button>
       </div>
 
-      {/* Color pickers */}
+      {/* Color picker for marker */}
       {showColorPicker && tool === "marker" && (
         <div className="flex gap-2 p-2 bg-white shadow-lg rounded-xl fixed bottom-20 left-1/2 -translate-x-1/2 z-50">
-          {[
-            "#000000",
-            "#EF4444",
-            "#F59E0B",
-            "#10B981",
-            "#3B82F6",
-            "#8B5CF6",
-          ].map((color) => (
+          {["#000000", "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6"].map((color) => (
             <button
               key={color}
               onClick={() => setDrawColor(color)}
@@ -159,16 +158,27 @@ const Whiteboard = () => {
           ))}
         </div>
       )}
+
+      {/* Eraser Size Controller */}
+      {tool === "eraser" && (
+        <div className="flex gap-2 items-center p-2 bg-white shadow-lg rounded-xl fixed bottom-20 left-1/2 -translate-x-1/2 z-50">
+          <span className="text-sm font-medium">Eraser Size:</span>
+          <input
+            type="range"
+            min="5"
+            max="100"
+            value={eraserSize}
+            onChange={(e) => setEraserSize(Number(e.target.value))}
+            className="w-32"
+          />
+          <span className="text-sm">{eraserSize}px</span>
+        </div>
+      )}
+
+      {/* Sticky note color picker */}
       {showColorPicker && tool === "sticky" && (
         <div className="flex gap-2 p-2 bg-white shadow-lg rounded-xl fixed bottom-20 left-1/2 -translate-x-1/2 z-50">
-          {[
-            "#FEF9C3",
-            "#FCD34D",
-            "#FDBA74",
-            "#A7F3D0",
-            "#BFDBFE",
-            "#DDD6FE",
-          ].map((color) => (
+          {["#FEF9C3", "#FCD34D", "#FDBA74", "#A7F3D0", "#BFDBFE", "#DDD6FE"].map((color) => (
             <button
               key={color}
               onClick={() => addStickyNote(color)}
@@ -202,18 +212,13 @@ const Whiteboard = () => {
               key={note._id}
               x={note.x}
               y={note.y}
-              draggable={
-                tool === "select" &&
-                !(editingNote && editingNote._id === note._id)
-              }
+              draggable={tool === "select" && !(editingNote && editingNote._id === note._id)}
               onDragEnd={(e) => {
                 const { x, y } = e.target.position();
                 updateNote(note._id, { x, y });
               }}
               onClick={() => {
-                setSelectedNoteId((prev) =>
-                  prev === note._id ? null : note._id
-                );
+                setSelectedNoteId((prev) => (prev === note._id ? null : note._id));
               }}
               onDblClick={() => {
                 const stage = stageRef.current;
@@ -273,14 +278,14 @@ const Whiteboard = () => {
           ))}
         </Layer>
 
-        {/* Drawing */}
+        {/* Drawing layer */}
         <Layer>
           {lines.map((line, i) => (
             <Line
               key={i}
               points={line.points}
               stroke={line.tool === "eraser" ? "black" : line.color}
-              strokeWidth={line.tool === "eraser" ? 20 : 2}
+              strokeWidth={line.tool === "eraser" ? line.size : 2}
               tension={0.5}
               lineCap="round"
               globalCompositeOperation={
