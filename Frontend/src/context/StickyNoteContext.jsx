@@ -15,7 +15,7 @@ export const StickyNoteProvider = ({ children }) => {
       const { data } = await axios.get("/api/notes");
       setNotes(data);
     } catch {
-      toast.error("Failed to fetch notes");
+      // toast.error("Failed to fetch notes");
     } finally {
       setNoteLoading(false);
     }
