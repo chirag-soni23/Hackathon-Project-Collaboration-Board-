@@ -1,5 +1,5 @@
 import React from "react";
-import Whiteboard from "../components/Whiteboard";
+import Whiteboard from "../components/WhiteBoard/Whiteboard";
 import Navbar from "../components/Navbar";
 
 const Home = () => {
